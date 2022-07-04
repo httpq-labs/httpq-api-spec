@@ -1,0 +1,454 @@
+openapi: 3.0.0
+
+info:
+  title: HTTPQ API
+  description: The Webhooks Sending Server
+  version: 0.0.1
+  
+externalDocs:
+  description: Find out more about HTTPQ
+  url: https://httpq.org
+
+security:
+  - ApiKeyAuth: [ ]
+
+tags:
+  - name: tenant
+    description: A producer of webhooks
+  - name: consumer
+    description: A recipient of webhooks. Scoped to a tenant.
+  - name: version
+    description: Webhook schema versions exposed by a tenant.
+  - name: topic
+    description: A tenant-defined group to which webhooks of the same type belong, for example "user.created" or "cart.checkout"
+  - name: subscription
+    description: Webhook delivery of all tenant events under a given topic to consumers
+  - name: webhook
+    description: A webhook event
+
+
+paths:
+  /:
+    get:
+      operationId: ping
+      responses:
+        200:
+          description: ping
+      "security": []
+  /keys:
+    post:
+      tags:
+        - tenant
+      operationId: createSecurityKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tenantId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  securityKey:
+                    type: string
+                    format: uuid
+
+  /tenants:
+    post:
+      tags:
+        - tenant
+      summary: Create a new tenant
+      operationId: createTenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+              required:
+                - name
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tenant"
+        "405":
+          description: Invalid input
+  "/tenants/{tenantId}":
+    get:
+      tags:
+        - tenant
+      summary: Retrieve a tenant
+      operationId: retrieveTenant
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tenant"
+        "400":
+          description: Invalid ID supplied
+        "404":
+          description: Pet not found
+        "405":
+          description: Validation exception
+
+  /consumers:
+    get:
+      tags:
+        - consumer
+      operationId: listConsumers
+      responses:
+        "200":
+          description: "successful operation"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Consumer"
+    post:
+      tags:
+        - consumer
+      operationId: createConsumer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                externalId:
+                  type: string
+                  minLength: 1
+                  maxLength: 256
+                versionId:
+                  type: string
+                  format: uuid
+      responses:
+        "201":
+          description: successful operation
+        "400":
+          description: validation error
+
+
+  /topics:
+    get:
+      tags:
+        - topic
+      operationId: listTopics
+      responses:
+        "200":
+          description: "successful operation"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Topic"
+    post:
+      tags:
+        - topic
+      operationId: createTopic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+              required:
+                - name
+      responses:
+        "201":
+          description: successful operation
+        "400":
+          description: validation error
+
+  "/events/{eventId}":
+    get:
+      tags:
+        - webhook
+      summary: Retrieve an event
+      operationId: retrieveWebhook
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: successful operation
+
+  /events:
+    get:
+      tags:
+        - webhook
+      operationId: listWebhook
+      responses:
+        "200":
+          description: "successful operation"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Version"
+    post:
+      tags:
+        - webhook
+      operationId: createWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                consumer:
+                  type: string
+                  format: uuid
+                topic:
+                  type: string
+                versioned_payloads:
+                  type: object
+
+              required:
+                - consumer
+                - topic
+                - versioned_payloads
+      responses:
+        "201":
+          description: successful operation
+        "400":
+          description: validation error
+
+  /versions:
+    get:
+      tags:
+        - version
+      operationId: listVersions
+      responses:
+        "200":
+          description: "successful operation"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Version"
+    post:
+      tags:
+        - version
+      operationId: createVersion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                version:
+                  type: string
+                  minLength: 1
+                  maxLength: 16
+              required:
+                - version
+      responses:
+        "201":
+          description: successful operation
+        "400":
+          description: validation error
+
+  /subscriptions:
+    get:
+      tags:
+        - subscription
+      operationId: listSubscriptions
+      responses:
+        "200":
+          description: "successful operation"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+    post:
+      tags:
+        - subscription
+      operationId: createSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  minLength: 1
+                  maxLength: 1024
+              required:
+                - url
+      responses:
+        "201":
+          description: successful operation
+        "400":
+          description: validation error
+  /subscriptions/{subscriptionId}:
+    put:
+      tags:
+        - subscription
+      operationId: updateSubscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  minLength: 1
+                  maxLength: 1024
+              required:
+                - url
+      responses:
+        "201":
+          description: successful operation
+        "400":
+          description: validation error
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+
+  requestBodies:
+    TenantArray:
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Tenant"
+      description: List of tenant object
+      required: true
+    Tenant:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Tenant"
+      description: A tenant object
+      required: true
+  schemas:
+    Topic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Version:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Consumer:
+      type: object
+      properties:
+        externalId:
+          type: string
+          format: uuid
+        versionId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+
+    Subscription:
+      type: object
+      properties:
+        topicId:
+          type: string
+          format: uuid
+        consumerId:
+          type: string
+          format: uuid
+        url:
+          type: string
+          pattern: url
+        createdAt:
+          type: string
+          format: date-time
