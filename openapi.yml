@@ -239,18 +239,18 @@ paths:
             schema:
               type: object
               properties:
-                consumer:
+                consumerId:
                   type: string
                   format: uuid
                 topic:
                   type: string
-                versioned_payloads:
+                versionedPayloads:
                   type: object
 
               required:
-                - consumer
+                - consumerId
                 - topic
-                - versioned_payloads
+                - versionedPayloads
       responses:
         "201":
           description: successful operation
