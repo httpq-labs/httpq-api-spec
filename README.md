@@ -1,4 +1,4 @@
-# HTTPQ API Specs
+# HTTPQ API Spec
 
 This repository contains the API specs for the HTTPQ REST API.
 
